@@ -219,7 +219,27 @@
       SUBAGENT: characterPool,
       OTHER: characterPool
     };
+    const modelBySessionKey = new Map();
     const idleChairPath = '/assets/kenney/furniture-kit/Models/GLTF format/chairModernCushion.glb';
+
+    function hashString(str){
+      let h = 2166136261;
+      for(let i=0;i<str.length;i++){
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function pickStableModelPath(item){
+      const key = item?.key || '';
+      if(modelBySessionKey.has(key)) return modelBySessionKey.get(key);
+      const candidates = modelPaths[item.type] || modelPaths.OTHER;
+      const idx = candidates.length ? (hashString(key) % candidates.length) : 0;
+      const picked = candidates[idx] || characterPool[0];
+      modelBySessionKey.set(key, picked);
+      return picked;
+    }
 
     function tintModel(root, state){
       const color = new THREE.Color(stateColor[state] ?? stateColor.UNKNOWN);
@@ -289,8 +309,7 @@
 
       let mesh;
       let clips = [];
-      const candidates = modelPaths[item.type] || modelPaths.OTHER;
-      const chosen = candidates[Math.floor(Math.random()*candidates.length)];
+      const chosen = pickStableModelPath(item);
       try {
         const src = await getModel(chosen);
         mesh = SkeletonUtils.clone(src.scene);
