@@ -30,7 +30,7 @@
   <div id="ui">
     <div id="title">💜 Luca Session Garden 3D</div>
     <div id="stats">loading...</div>
-    <div id="hint">드래그: 회전 · 휠: 줌 · WASD: 씬 이동 · 캐릭터 클릭: 세션 정보</div>
+    <div id="hint">드래그: 회전 · 휠: 줌 · WASD: 수평 이동 · Q/E: 상하 이동 · 캐릭터 클릭: 세션 정보</div>
     <div id="links">
       <a href="/" target="_self">2D 대시보드</a>
       <a href="/three.html" target="_self">3D 새로고침</a>
@@ -76,8 +76,9 @@
     controls.enableDamping = true;
     controls.target.set(0, 2, 0);
 
-    const keyState = { w:false, a:false, s:false, d:false };
+    const keyState = { w:false, a:false, s:false, d:false, q:false, e:false };
     const moveSpeed = 0.22;
+    const moveSpeedY = 0.18;
     window.addEventListener('keydown', (e)=>{ const k=e.key.toLowerCase(); if(k in keyState) keyState[k]=true; });
     window.addEventListener('keyup', (e)=>{ const k=e.key.toLowerCase(); if(k in keyState) keyState[k]=false; });
 
@@ -87,120 +88,22 @@
     // Floor
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(80, 60),
-      new THREE.MeshStandardMaterial({ color:0x131a36, roughness:.95, metalness:.05 })
+      new THREE.MeshStandardMaterial({ color:0xe5c999, roughness:.92, metalness:.03 })
     );
     floor.rotation.x = -Math.PI/2;
     scene.add(floor);
 
     // Grid
     const grid = new THREE.GridHelper(80, 20, 0x3c4776, 0x222a4a);
+    grid.visible = false;
     grid.position.y = 0.01;
     scene.add(grid);
-
-    // Night-sky stars
-    const starGeo = new THREE.BufferGeometry();
-    const starCount = 1200;
-    const starPos = new Float32Array(starCount * 3);
-    for(let i=0;i<starCount;i++){
-      const r = 45 + Math.random()*30;
-      const a = Math.random()*Math.PI*2;
-      const h = 12 + Math.random()*25;
-      starPos[i*3] = Math.cos(a)*r;
-      starPos[i*3+1] = h;
-      starPos[i*3+2] = Math.sin(a)*r;
-    }
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos,3));
-    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color:0xbfd3ff, size:0.18, transparent:true, opacity:0.95 }));
-    scene.add(stars);
-
-    // Soft aurora ribbons
-    const aurora1 = new THREE.Mesh(
-      new THREE.PlaneGeometry(60, 18),
-      new THREE.MeshBasicMaterial({ color:0x6a5cff, transparent:true, opacity:0.12, side:THREE.DoubleSide })
-    );
-    aurora1.position.set(-8, 14, -20); aurora1.rotation.x = -0.5; aurora1.rotation.z = 0.15;
-    scene.add(aurora1);
-    const aurora2 = new THREE.Mesh(
-      new THREE.PlaneGeometry(50, 16),
-      new THREE.MeshBasicMaterial({ color:0x4cffcc, transparent:true, opacity:0.09, side:THREE.DoubleSide })
-    );
-    aurora2.position.set(12, 12, -18); aurora2.rotation.x = -0.45; aurora2.rotation.z = -0.12;
-    scene.add(aurora2);
-
-    // 2D cloud sprites on planes (billboard style)
-    function makeCloudTexture(){
-      const c = document.createElement('canvas');
-      c.width = 256; c.height = 128;
-      const ctx = c.getContext('2d');
-      ctx.clearRect(0,0,c.width,c.height);
-      ctx.fillStyle = 'rgba(240,246,255,0.92)';
-      const puffs = [
-        [70,70,30], [98,56,34], [132,64,30], [160,72,26], [114,78,34]
-      ];
-      for(const [x,y,r] of puffs){
-        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-      }
-      ctx.fillRect(65,72,110,28);
-      const tex = new THREE.CanvasTexture(c);
-      tex.needsUpdate = true;
-      return tex;
-    }
-
+    // removed star/aurora backdrop for cleaner indoor room look
+    const stars = null;
+    const aurora1 = null;
+    const aurora2 = null;
+    // removed floating cloud sprites for indoor room look
     const clouds = [];
-    const cloudTex = makeCloudTexture();
-
-
-    function makeBadgeTexture(kind='crown'){
-      const c = document.createElement('canvas');
-      c.width = 128; c.height = 128;
-      const ctx = c.getContext('2d');
-      ctx.clearRect(0,0,128,128);
-      if(kind==='crown'){
-        ctx.fillStyle = 'rgba(255,219,92,0.95)';
-        ctx.beginPath();
-        ctx.moveTo(18,88); ctx.lineTo(28,44); ctx.lineTo(50,72); ctx.lineTo(64,34); ctx.lineTo(78,72); ctx.lineTo(100,44); ctx.lineTo(110,88); ctx.closePath();
-        ctx.fill();
-        ctx.fillRect(18,88,92,14);
-        ctx.strokeStyle='rgba(255,245,186,0.95)'; ctx.lineWidth=4; ctx.stroke();
-      }else{
-        ctx.fillStyle='rgba(255,220,95,0.95)';
-        ctx.beginPath(); ctx.arc(64,64,38,0,Math.PI*2); ctx.fill();
-        ctx.lineWidth=6; ctx.strokeStyle='rgba(255,245,186,0.95)'; ctx.stroke();
-      }
-      const tex = new THREE.CanvasTexture(c);
-      tex.needsUpdate = true;
-      return tex;
-    }
-
-    function addZoneDecor(){
-      // Left zone: living room
-      const rugLiving = new THREE.Mesh(new THREE.PlaneGeometry(18, 12), new THREE.MeshBasicMaterial({color:0x26335f, transparent:true, opacity:0.22, side:THREE.DoubleSide}));
-      rugLiving.rotation.x = -Math.PI/2; rugLiving.position.set(-8.8,0.03,-3.5); envGroup.add(rugLiving);
-      // Right zone: office
-      const rugOffice = new THREE.Mesh(new THREE.PlaneGeometry(18, 12), new THREE.MeshBasicMaterial({color:0x1f4f60, transparent:true, opacity:0.22, side:THREE.DoubleSide}));
-      rugOffice.rotation.x = -Math.PI/2; rugOffice.position.set(8.8,0.03,-3.5); envGroup.add(rugOffice);
-
-      const makeZoneLabel = (text,x,z)=>{
-        const c=document.createElement('canvas'); c.width=400; c.height=120;
-        const ctx=c.getContext('2d');
-        ctx.fillStyle='rgba(18,24,48,.75)'; ctx.fillRect(0,0,400,120);
-        ctx.strokeStyle='rgba(150,170,255,.85)'; ctx.lineWidth=4; ctx.strokeRect(3,3,394,114);
-        ctx.fillStyle='#e8eeff'; ctx.font='700 46px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text,200,60);
-        const tex=new THREE.CanvasTexture(c);
-        const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
-        sp.scale.set(6.2,1.7,1); sp.position.set(x,2.9,z); envGroup.add(sp);
-      };
-      makeZoneLabel('LIVING ROOM', -8.8, -11.5);
-      makeZoneLabel('OFFICE', 8.8, -11.5);
-    }
-    for(let i=0;i<11;i++){
-      const mat = new THREE.MeshBasicMaterial({ map: cloudTex, transparent:true, opacity:0.42, depthWrite:false });
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(4.2 + Math.random()*2.2, 2.0 + Math.random()*1.0), mat);
-      plane.position.set((Math.random()-0.5)*34, 7 + Math.random()*5, -8 + Math.random()*18);
-      plane.userData.vx = 0.01 + Math.random()*0.02;
-      plane.userData.phase = Math.random()*Math.PI*2;
-      clouds.push(plane); scene.add(plane);
-    }
 
     // (removed) crown marker and type sign billboards per user request
 
@@ -275,6 +178,23 @@
       return p;
     }
 
+    function addZoneDecor(){
+      // opaque floor zones + simple walls (sample-like interior blocks)
+      const floorLiving = new THREE.Mesh(new THREE.PlaneGeometry(18, 12), new THREE.MeshStandardMaterial({color:0xf0d6ab, roughness:.95, metalness:0}));
+      floorLiving.rotation.x = -Math.PI/2; floorLiving.position.set(-8.8,0.04,-3.5); envGroup.add(floorLiving);
+
+      const floorOffice = new THREE.Mesh(new THREE.PlaneGeometry(18, 12), new THREE.MeshStandardMaterial({color:0xd9dde5, roughness:.96, metalness:0}));
+      floorOffice.rotation.x = -Math.PI/2; floorOffice.position.set(8.8,0.04,-3.5); envGroup.add(floorOffice);
+
+      const wallMat = new THREE.MeshStandardMaterial({ color:0xf8f8f4, roughness:.95, metalness:0.02 });
+      const mkWall=(w,h,d,x,y,z,ry=0)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat); m.position.set(x,y,z); m.rotation.y=ry; envGroup.add(m); };
+      mkWall(36, 3.2, 0.35, 0, 1.6, -12.5, 0);   // back wall
+      mkWall(0.35, 3.2, 20, -18, 1.6, -2.5, 0);  // left wall
+      mkWall(0.35, 3.2, 20, 18, 1.6, -2.5, 0);   // right wall
+      mkWall(8.5, 3.0, 0.3, -3.8, 1.5, -1.0, Math.PI/2); // divider 1
+      mkWall(8.5, 3.0, 0.3, 3.8, 1.5, -1.0, Math.PI/2);  // divider 2
+    }
+
     async function initEnvironment(){
       if(envReady) return;
       envReady = true;
@@ -296,7 +216,6 @@
       // room-ish shell and floor dressing
       await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:0,y:0,z:-14,s:2.2});
       await place('/assets/kenney/furniture-kit/Models/GLTF format/wallDoorway.glb', {x:0,y:0,z:-16,s:2.2});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/rugRectangle.glb', {x:0,y:0.02,z:-3,s:2.4});
 
       // cozy props
       await place('/assets/kenney/furniture-kit/Models/GLTF format/loungeSofaLong.glb', {x:-10,y:0,z:-7,s:1.2,ry:0.5});
@@ -312,12 +231,10 @@
       // extra wall/floor dressing
       await place('/assets/kenney/furniture-kit/Models/GLTF format/bookcaseOpen.glb', {x:-13.2,y:0,z:-9.8,s:1.1,ry:0.3});
       await place('/assets/kenney/furniture-kit/Models/GLTF format/lamp-floor.glb', {x:-12.0,y:0,z:-5.8,s:1.1,ry:0.2});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/rugDoormat.glb', {x:-11.0,y:0.02,z:-6.1,s:1.3,ry:0.2});
       await place('/assets/kenney/furniture-kit/Models/GLTF format/kitchenCabinetDrawer.glb', {x:12.8,y:0,z:-9.2,s:1.1,ry:-0.35});
       await place('/assets/kenney/furniture-kit/Models/GLTF format/kitchenFridgeBuiltIn.glb', {x:14.8,y:0,z:-9.8,s:1.15,ry:-0.45});
       await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:-17.5,y:0,z:-6.5,s:2.0,ry:Math.PI/2});
       await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:17.5,y:0,z:-6.5,s:2.0,ry:-Math.PI/2});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/rugRectangle.glb', {x:8.7,y:0.02,z:-3.4,s:2.1,ry:0.02});
     }
 
     function normalizeModel(root, targetHeight = 1.6){
@@ -387,9 +304,9 @@
         try {
           const chairGltf = await getModel(idleChairPath);
           chair = chairGltf.scene.clone(true);
-          chair.position.set(x, 0.52, z-0.08);
+          chair.position.set(x, 0.52, z-0.15);
           chair.scale.setScalar(1.05);
-          chair.rotation.y = 0;
+          chair.rotation.y = Math.PI;
           scene.add(chair);
         } catch(e) { /* ignore chair load fail */ }
       }
@@ -515,10 +432,9 @@
       t += 0.016;
 
       // world ambience animation
-      stars.material.opacity = 0.82 + Math.sin(t*0.7)*0.12;
-      aurora1.material.opacity = 0.10 + Math.sin(t*0.6)*0.05;
-      aurora2.material.opacity = 0.08 + Math.cos(t*0.65)*0.04;
-      // crown removed
+      if(stars) stars.material.opacity = 0.82 + Math.sin(t*0.7)*0.12;
+      if(aurora1) aurora1.material.opacity = 0.10 + Math.sin(t*0.6)*0.05;
+      if(aurora2) aurora2.material.opacity = 0.08 + Math.cos(t*0.65)*0.04;
 
       clouds.forEach((c, i)=>{
         c.position.x += c.userData.vx;
@@ -537,7 +453,8 @@
           b.anchor.position.x = b.baseX + rx;
           b.anchor.position.z = b.baseZ + rz;
           b.mesh.position.y = b.baseY + Math.sin(t*2.4 + b.pulse + i*0.2) * 0.08;
-          b.anchor.rotation.y = Math.atan2(rz, rx) + b.facingOffset;
+          b.anchor.lookAt(b.anchor.position.x + rx, b.anchor.position.y, b.anchor.position.z + rz);
+          b.mesh.rotation.y = b.facingOffset;
         } else if (b.state === 'IDLE'){
           b.anchor.position.x = b.baseX;
           b.anchor.position.z = b.baseZ;
@@ -572,6 +489,8 @@
         camera.position.add(delta);
         controls.target.add(delta);
       }
+      if(keyState.q){ camera.position.y += moveSpeedY; controls.target.y += moveSpeedY; }
+      if(keyState.e){ camera.position.y -= moveSpeedY; controls.target.y -= moveSpeedY; }
 
       controls.update();
       renderer.render(scene, camera);
