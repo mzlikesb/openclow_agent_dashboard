@@ -220,6 +220,7 @@
       OTHER: characterPool
     };
     const modelBySessionKey = new Map();
+    let lastRenderSig = '';
     const idleChairPath = '/assets/kenney/furniture-kit/Models/GLTF format/chairModernCushion.glb';
 
     function hashString(str){
@@ -395,6 +396,15 @@
         `표시 세션 <b>${liveItems.length}</b> (ACTIVE <b>${activeN}</b> · IDLE <b>${idleN}</b>)`,
         `업데이트: ${d.generatedAtIso} · STALE은 3D에서 숨김`
       ].join('<br>');
+
+      const sig = liveItems
+        .map(x => `${x.key}|${x.state}`)
+        .sort()
+        .join('||');
+      if(sig === lastRenderSig){
+        return; // 상태 변화 없으면 기존 위치/애니메이션 유지
+      }
+      lastRenderSig = sig;
 
       clearBlobs();
       const counters = { MAIN:0, CRON:0, SUBAGENT:0, OTHER:0 };
