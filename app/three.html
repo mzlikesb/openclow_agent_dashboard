@@ -221,6 +221,9 @@
     };
     const modelBySessionKey = new Map();
     let lastRenderSig = '';
+    let envReady = false;
+    const envGroup = new THREE.Group();
+    scene.add(envGroup);
     const idleChairPath = '/assets/kenney/furniture-kit/Models/GLTF format/chairModernCushion.glb';
 
     function hashString(str){
@@ -263,6 +266,40 @@
       });
       modelCache.set(path, p);
       return p;
+    }
+
+    async function initEnvironment(){
+      if(envReady) return;
+      envReady = true;
+
+      const place = async (path, {x=0,y=0,z=0,s=1,ry=0}={}) => {
+        try {
+          const gltf = await getModel(path);
+          const m = gltf.scene.clone(true);
+          m.position.set(x,y,z);
+          m.scale.setScalar(s);
+          m.rotation.y = ry;
+          envGroup.add(m);
+        } catch (e) {
+          // optional prop; ignore missing assets
+        }
+      };
+
+      // room-ish shell and floor dressing
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:0,y:0,z:-14,s:2.2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/wallDoorway.glb', {x:0,y:0,z:-16,s:2.2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/rugRectangle.glb', {x:0,y:0.02,z:-3,s:2.4});
+
+      // cozy props
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/loungeSofaLong.glb', {x:-10,y:0,z:-7,s:1.2,ry:0.5});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/tableCoffeeGlass.glb', {x:-7.8,y:0,z:-5.4,s:1.1,ry:0.4});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/desk.glb', {x:10,y:0,z:-7,s:1.2,ry:-0.4});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/computerScreen.glb', {x:10.1,y:1.02,z:-6.95,s:1.2,ry:-0.4});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/speakerSmall.glb', {x:11.5,y:1.05,z:-6.95,s:1.0,ry:0.2});
+
+      // food props for cuteness
+      await place('/assets/kenney/food-kit/Models/GLB format/donut.glb', {x:-7.5,y:0.95,z:-5.1,s:0.8,ry:0.2});
+      await place('/assets/kenney/food-kit/Models/GLB format/pizza.glb', {x:10.2,y:1.05,z:-6.5,s:0.6,ry:0.3});
     }
 
     function normalizeModel(root, targetHeight = 1.6){
@@ -386,6 +423,7 @@
 
     const statsEl = document.getElementById('stats');
     async function loadSessions(){
+      await initEnvironment();
       const r = await fetch('sessions.json?t='+Date.now());
       const d = await r.json();
 
