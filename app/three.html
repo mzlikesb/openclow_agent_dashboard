@@ -30,7 +30,7 @@
   <div id="ui">
     <div id="title">💜 Luca Session Garden 3D</div>
     <div id="stats">loading...</div>
-    <div id="hint">드래그: 회전 · 휠: 줌 · 점(슬라임) 클릭: 세션 정보</div>
+    <div id="hint">드래그: 회전 · 휠: 줌 · WASD: 씬 이동 · 캐릭터 클릭: 세션 정보</div>
     <div id="links">
       <a href="/" target="_self">2D 대시보드</a>
       <a href="/three.html" target="_self">3D 새로고침</a>
@@ -75,6 +75,11 @@
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.target.set(0, 2, 0);
+
+    const keyState = { w:false, a:false, s:false, d:false };
+    const moveSpeed = 0.22;
+    window.addEventListener('keydown', (e)=>{ const k=e.key.toLowerCase(); if(k in keyState) keyState[k]=true; });
+    window.addEventListener('keyup', (e)=>{ const k=e.key.toLowerCase(); if(k in keyState) keyState[k]=false; });
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
     const dir = new THREE.DirectionalLight(0xb4c9ff, 1.0); dir.position.set(8, 18, 8); scene.add(dir);
@@ -197,16 +202,6 @@
       clouds.push(plane); scene.add(plane);
     }
 
-    // Heart particles
-    const hearts = [];
-    const heartGeo = new THREE.SphereGeometry(0.12, 10, 10);
-    for(let i=0;i<24;i++){
-      const h = new THREE.Mesh(heartGeo, new THREE.MeshBasicMaterial({ color:0xff6bd6, transparent:true, opacity:0.85 }));
-      h.position.set((Math.random()-0.5)*16, 0.8 + Math.random()*3, (Math.random()-0.5)*14);
-      h.userData = { vy: 0.01 + Math.random()*0.02, drift:(Math.random()-0.5)*0.01 };
-      hearts.push(h); scene.add(h);
-    }
-
     // (removed) crown marker and type sign billboards per user request
 
 
@@ -313,6 +308,16 @@
       // food props for cuteness
       await place('/assets/kenney/food-kit/Models/GLB format/donut.glb', {x:-7.5,y:0.95,z:-5.1,s:0.8,ry:0.2});
       await place('/assets/kenney/food-kit/Models/GLB format/pizza.glb', {x:10.2,y:1.05,z:-6.5,s:0.6,ry:0.3});
+
+      // extra wall/floor dressing
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/bookcaseOpen.glb', {x:-13.2,y:0,z:-9.8,s:1.1,ry:0.3});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/lamp-floor.glb', {x:-12.0,y:0,z:-5.8,s:1.1,ry:0.2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/rugDoormat.glb', {x:-11.0,y:0.02,z:-6.1,s:1.3,ry:0.2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/kitchenCabinetDrawer.glb', {x:12.8,y:0,z:-9.2,s:1.1,ry:-0.35});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/kitchenFridgeBuiltIn.glb', {x:14.8,y:0,z:-9.8,s:1.15,ry:-0.45});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:-17.5,y:0,z:-6.5,s:2.0,ry:Math.PI/2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:17.5,y:0,z:-6.5,s:2.0,ry:-Math.PI/2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/rugRectangle.glb', {x:8.7,y:0.02,z:-3.4,s:2.1,ry:0.02});
     }
 
     function normalizeModel(root, targetHeight = 1.6){
@@ -382,14 +387,14 @@
         try {
           const chairGltf = await getModel(idleChairPath);
           chair = chairGltf.scene.clone(true);
-          chair.position.set(x, 0.52, z);
+          chair.position.set(x, 0.52, z-0.08);
           chair.scale.setScalar(1.05);
-          chair.rotation.y = Math.PI + (Math.random()-0.5)*0.25;
+          chair.rotation.y = 0;
           scene.add(chair);
         } catch(e) { /* ignore chair load fail */ }
       }
 
-      mesh.position.set(0, item.state === 'IDLE' ? 1.05 : y, 0);
+      mesh.position.set(0, item.state === 'IDLE' ? 0.95 : y, 0);
       mesh.scale.setScalar(scale);
       mesh.userData.item = item;
 
@@ -439,7 +444,8 @@
         item,
         badge,
         emissiveMats,
-        roamSeed: Math.random()*Math.PI*2
+        roamSeed: Math.random()*Math.PI*2,
+        facingOffset: 0
       });
       pickables.push(anchor);
     }
@@ -522,16 +528,6 @@
         c.lookAt(camera.position.x, c.position.y, camera.position.z);
       });
 
-      hearts.forEach((h, i)=>{
-        h.position.y += h.userData.vy;
-        h.position.x += h.userData.drift;
-        h.material.opacity = 0.55 + Math.sin(t*2.5 + i)*0.25;
-        if(h.position.y > 6){
-          h.position.y = 0.7;
-          h.position.x = (Math.random()-0.5)*16;
-          h.position.z = (Math.random()-0.5)*14;
-        }
-      });
 
       blobs.forEach((b, i)=>{
         // active: walk around (roam), idle: sit and rest on chair
@@ -541,11 +537,13 @@
           b.anchor.position.x = b.baseX + rx;
           b.anchor.position.z = b.baseZ + rz;
           b.mesh.position.y = b.baseY + Math.sin(t*2.4 + b.pulse + i*0.2) * 0.08;
-          b.mesh.rotation.y = Math.atan2(rz, rx) + Math.PI/2;
+          b.anchor.rotation.y = Math.atan2(rz, rx) + b.facingOffset;
         } else if (b.state === 'IDLE'){
           b.anchor.position.x = b.baseX;
           b.anchor.position.z = b.baseZ;
-          b.mesh.position.y = b.baseY + Math.sin(t*1.4 + b.pulse) * 0.02;
+          b.anchor.rotation.y = 0;
+          b.mesh.position.y = b.baseY + Math.sin(t*1.4 + b.pulse) * 0.01;
+          b.mesh.rotation.y = 0;
         } else {
           b.anchor.position.x = b.baseX;
           b.anchor.position.z = b.baseZ;
@@ -559,6 +557,22 @@
           b.emissiveMats.forEach(m => { m.emissiveIntensity = 0; });
         }
       });
+
+      // WASD camera+target move
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
+      const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
+      const delta = new THREE.Vector3();
+      if(keyState.w) delta.add(forward);
+      if(keyState.s) delta.sub(forward);
+      if(keyState.d) delta.add(right);
+      if(keyState.a) delta.sub(right);
+      if(delta.lengthSq()>0){
+        delta.normalize().multiplyScalar(moveSpeed);
+        camera.position.add(delta);
+        controls.target.add(delta);
+      }
+
       controls.update();
       renderer.render(scene, camera);
     }
