@@ -1,0 +1,6 @@
+app/sessions.json
+app/assets/kenney/*.zip
+app/assets/kenney/mini-characters/
+app/assets/kenney/furniture-kit/
+app/assets/kenney/food-kit/
+*.log

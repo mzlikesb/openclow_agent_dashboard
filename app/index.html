@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luca Session Garden</title>
+  <style>
+    :root{--bg:#0f1221;--glow:#2c2e6e;--card:#1a2040;--card2:#151a33;--line:#303a75;--text:#f8f7ff;--muted:#b8b9d9;--chip:#20285a;--chipLine:#374394;--btn:#1e2550;--btnLine:#3a4699;--btnText:#e7ebff;--hero1:#2b2f68;--hero2:#202656;--heroLine:#4957bf;--heroItem:#141a3b;--heroItemLine:#38438d;--barBg:#0a0d1f;--barLine:#2f3566}
+    html[data-theme='light']{--bg:#f5f7ff;--glow:#dbe4ff;--card:#ffffff;--card2:#f7f9ff;--line:#d7defa;--text:#1b2240;--muted:#5f688f;--chip:#eef2ff;--chipLine:#c8d4ff;--btn:#edf2ff;--btnLine:#c8d4ff;--btnText:#1f2a57;--hero1:#eef2ff;--hero2:#dfe8ff;--heroLine:#b8c8ff;--heroItem:#ffffff;--heroItemLine:#cfdbff;--barBg:#eef2ff;--barLine:#c8d4ff}
+    *{box-sizing:border-box}
+    body{font-family:ui-rounded,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:radial-gradient(1200px 600px at 80% -10%,var(--glow) 0%,var(--bg) 60%);color:var(--text);margin:0;padding:20px}
+    .wrap{max-width:1100px;margin:0 auto}
+    .title{font-size:30px;font-weight:900}
+    .sub{opacity:.85;margin:8px 0 14px;color:var(--muted)}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+    .chip{background:var(--chip);border:1px solid var(--chipLine);padding:8px 12px;border-radius:999px;font-size:13px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+    .theme-wrap{display:flex;justify-content:flex-end;margin:6px 0 12px}
+    .btn{background:var(--btn);border:1px solid var(--btnLine);color:var(--btnText);padding:7px 12px;border-radius:999px;font-size:12px;cursor:pointer}
+    .btn.active{background:#6d6cff;border-color:#8f8eff;color:#fff;font-weight:700}
+    .hero{background:linear-gradient(145deg,var(--hero1),var(--hero2));border:1px solid var(--heroLine);border-radius:18px;padding:16px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .hero-title{font-size:14px;opacity:.9;margin-bottom:8px}
+    .hero-key{font-weight:800;font-size:15px;word-break:break-all}
+    .hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
+    .hero-item{background:var(--heroItem);border:1px solid var(--heroItemLine);border-radius:12px;padding:8px}
+    .section{margin:18px 0 8px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+    .card{background:linear-gradient(145deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,.22)}
+    .name{font-size:14px;font-weight:800;word-break:break-all;margin-bottom:8px}
+    .row{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:4px 0}
+    .k{font-size:12px;opacity:.72}
+    .v{font-size:13px}
+    .badge{font-size:11px;padding:4px 8px;border-radius:999px;font-weight:700}
+    .ACTIVE{background:#123a2b;color:#80ffc6}
+    .IDLE{background:#3a3520;color:#ffe79e}
+    .STALE{background:#3b2020;color:#ffabab}
+    .UNKNOWN{background:#2d2d2d;color:#ddd}
+    .type{background:#2a3170;color:#d8ddff}
+    .bar{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--barBg);border:1px solid var(--barLine);padding:6px 8px;border-radius:8px;margin-top:8px;letter-spacing:.4px}
+    .tiny{opacity:.68;font-size:11px;margin-top:8px}
+    .footer{opacity:.55;margin-top:16px;font-size:12px}
+    .empty{opacity:.7;border:1px dashed var(--heroLine);border-radius:12px;padding:14px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <div class="title">💜 Luca Session Garden</div>
+        <div class="sub">귀엽게 보는 실시간 세션 현황판 (3초 갱신) · 타입별 그룹: MAIN / CRON / SUBAGENT / OTHER</div>
+      </div>
+      <div class="theme-wrap" style="gap:8px;">
+        <a class="btn" href="/three.html" style="text-decoration:none;display:inline-flex;align-items:center;">🎮 3D 보기</a>
+        <button class="btn" id="themeBtn">🌙 다크모드</button>
+      </div>
+    </div>
+
+    <div class="hero" id="hero"></div>
+
+    <div class="chips" id="chips"></div>
+
+    <div class="controls">
+      <button class="btn filter-btn active" data-filter="DEFAULT">default</button>
+      <button class="btn filter-btn" data-filter="TOTAL">total</button>
+      <button class="btn filter-btn" data-filter="ACTIVE_ONLY">activate</button>
+      <button class="btn filter-btn" data-filter="IDLE_ONLY">idle</button>
+      <button class="btn filter-btn" data-filter="STALE_ONLY">stale</button>
+    </div>
+
+    <div id="sections"></div>
+    <div class="footer">ACTIVE: 최근 20분 · IDLE: 20~180분 · STALE: 180분 초과 또는 aborted</div>
+  </div>
+
+  <script>
+    const TYPE_META = {
+      MAIN: { icon: '👑', name: '메인 세션' },
+      CRON: { icon: '⏰', name: '크론 세션' },
+      SUBAGENT: { icon: '🤖', name: '서브에이전트 세션' },
+      OTHER: { icon: '🧩', name: '기타 세션' },
+    };
+
+    let currentFilter = 'DEFAULT';
+    let latestData = null;
+
+    function applyTheme(theme){
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('luca-theme', theme);
+      const btn = document.getElementById('themeBtn');
+      if(btn) btn.textContent = theme === 'dark' ? '☀️ 라이트로 전환' : '🌙 다크로 전환';
+    }
+
+    function initTheme(){
+      const saved = localStorage.getItem('luca-theme');
+      applyTheme(saved || 'dark');
+      const btn = document.getElementById('themeBtn');
+      if(btn){
+        btn.onclick = () => {
+          const now = document.documentElement.getAttribute('data-theme') || 'dark';
+          applyTheme(now === 'dark' ? 'light' : 'dark');
+        };
+      }
+    }
+
+    function humanizeAge(ageMin){
+      if(ageMin === null || ageMin === undefined || Number.isNaN(ageMin)) return '-';
+      const totalMin = Math.max(0, Math.floor(Number(ageMin)));
+      const d = Math.floor(totalMin / 1440);
+      const h = Math.floor((totalMin % 1440) / 60);
+      const m = totalMin % 60;
+      const parts = [];
+      if(d > 0) parts.push(`${d}일`);
+      if(h > 0 || d > 0) parts.push(`${h}시간`);
+      parts.push(`${m}분`);
+      return parts.join(' ');
+    }
+
+    function cardHTML(s){
+      const name = `${s.label ? s.label+' · ' : ''}${s.key}`;
+      return `
+        <div class="card">
+          <div class="row">
+            <div class="name">${name}</div>
+            <div class="badge ${s.state}">${s.state}</div>
+          </div>
+          <div class="row"><div class="k">타입</div><div class="v"><span class="badge type">${s.type}</span></div></div>
+          <div class="row"><div class="k">모델</div><div class="v">${s.model || '-'}</div></div>
+          <div class="row"><div class="k">채널</div><div class="v">${s.channel || '-'}</div></div>
+          <div class="row"><div class="k">토큰</div><div class="v">${(s.totalTokens||0).toLocaleString()} / ${(s.contextTokens||0).toLocaleString()} (${s.percent}%)</div></div>
+          <div class="bar">${s.bar}</div>
+          <div class="tiny">최근 업데이트: ${humanizeAge(s.ageMin)} 전${s.abortedLastRun ? ' · aborted' : ''}</div>
+        </div>
+      `;
+    }
+
+    function renderHero(items){
+      const main = items.find(x => x.type === 'MAIN') || items[0];
+      const hero = document.getElementById('hero');
+      if(!main){
+        hero.innerHTML = `<div class='empty'>세션 데이터가 아직 없어.</div>`;
+        return;
+      }
+      hero.innerHTML = `
+        <div class='hero-title'>🌟 메인 세션 핵심 위젯</div>
+        <div class='hero-key'>${main.key}</div>
+        <div class='hero-grid'>
+          <div class='hero-item'><div class='k'>상태</div><div class='v'><span class='badge ${main.state}'>${main.state}</span></div></div>
+          <div class='hero-item'><div class='k'>모델</div><div class='v'>${main.model || '-'}</div></div>
+          <div class='hero-item'><div class='k'>토큰 점유율</div><div class='v'>${main.percent}%</div></div>
+          <div class='hero-item'><div class='k'>최근 업데이트</div><div class='v'>${humanizeAge(main.ageMin)} 전</div></div>
+        </div>
+        <div class='bar' style='margin-top:10px'>${main.bar}</div>
+      `;
+    }
+
+    function filteredItems(items){
+      if(currentFilter === 'DEFAULT') return items.filter(x => x.state === 'ACTIVE' || x.state === 'IDLE');
+      if(currentFilter === 'TOTAL') return items;
+      if(currentFilter === 'ACTIVE_ONLY') return items.filter(x => x.state === 'ACTIVE');
+      if(currentFilter === 'IDLE_ONLY') return items.filter(x => x.state === 'IDLE');
+      if(currentFilter === 'STALE_ONLY') return items.filter(x => x.state === 'STALE');
+      return items;
+    }
+
+    function renderSections(data){
+      const items = filteredItems(data.items || []);
+      const byType = {};
+      for(const it of items){
+        byType[it.type] = byType[it.type] || [];
+        byType[it.type].push(it);
+      }
+
+      const order = ['MAIN','CRON','SUBAGENT','OTHER'];
+      const sections = document.getElementById('sections');
+
+      const html = order
+        .filter(t => (byType[t] || []).length > 0)
+        .map(t => {
+          const meta = TYPE_META[t] || TYPE_META.OTHER;
+          return `
+            <div class="section">${meta.icon} ${meta.name} <span style="opacity:.7;font-size:12px">(${byType[t].length})</span></div>
+            <div class="grid">${byType[t].map(cardHTML).join('')}</div>
+          `;
+        }).join('');
+
+      sections.innerHTML = html || `<div class='empty'>현재 필터에서 표시할 세션이 없어.</div>`;
+    }
+
+    function bindFilters(){
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.filter;
+          if(latestData){
+            renderSections(latestData);
+          }
+        };
+      });
+    }
+
+    async function load(){
+      const res = await fetch('sessions.json?t=' + Date.now());
+      const d = await res.json();
+      latestData = d;
+
+      const chips = document.getElementById('chips');
+      chips.innerHTML = `
+        <div class='chip'>총 세션: <b>${d.summary.total}</b></div>
+        <div class='chip'>🟢 ACTIVE: <b>${d.summary.active}</b></div>
+        <div class='chip'>🟡 IDLE: <b>${d.summary.idle}</b></div>
+        <div class='chip'>⚫ STALE: <b>${d.summary.stale}</b></div>
+        <div class='chip'>스냅샷: <b>${d.generatedAtIso}</b></div>
+      `;
+
+      renderHero(d.items || []);
+      renderSections(d);
+    }
+
+    initTheme();
+    bindFilters();
+    load();
+    setInterval(load, 3000);
+  </script>
+</body>
+</html>

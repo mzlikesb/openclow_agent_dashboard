@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luca Session Garden 3D</title>
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; background:#0b1020; color:#fff; font-family: ui-rounded, -apple-system, sans-serif; }
+    #ui {
+      position: fixed; top: 12px; left: 12px; z-index: 10;
+      background: rgba(13,18,40,.72); border:1px solid rgba(140,160,255,.35);
+      border-radius: 14px; padding: 10px 12px; backdrop-filter: blur(8px);
+      max-width: min(92vw, 520px);
+    }
+    #title { font-weight: 800; font-size: 15px; margin-bottom: 6px; }
+    #stats { font-size: 12px; opacity: .95; line-height: 1.45; }
+    #hint { margin-top: 6px; font-size: 11px; opacity:.75; }
+    #links { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+    #links a { color:#dbe2ff; text-decoration:none; font-size:11px; border:1px solid rgba(170,185,255,.45); border-radius:999px; padding:4px 8px; background:rgba(35,45,90,.55) }
+    #links a:hover { background:rgba(60,78,150,.6); }
+    #tooltip {
+      position: fixed; z-index: 20; pointer-events:none; display:none;
+      background: rgba(10,10,20,.9); border:1px solid rgba(180,190,255,.45);
+      border-radius: 10px; padding: 7px 9px; font-size: 11px; max-width: 360px;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div id="title">💜 Luca Session Garden 3D</div>
+    <div id="stats">loading...</div>
+    <div id="hint">드래그: 회전 · 휠: 줌 · 점(슬라임) 클릭: 세션 정보</div>
+    <div id="links">
+      <a href="/" target="_self">2D 대시보드</a>
+      <a href="/three.html" target="_self">3D 새로고침</a>
+    </div>
+  </div>
+  <div id="tooltip"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+    import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+    import { SkeletonUtils } from 'https://unpkg.com/three@0.160.0/examples/jsm/utils/SkeletonUtils.js';
+
+    const stateColor = {
+      ACTIVE: 0x53ffb4,
+      IDLE: 0xffdd73,
+      STALE: 0x98a0b3,
+      UNKNOWN: 0xc7c9d3,
+    };
+    const typeX = { MAIN:-8, CRON:-2.5, SUBAGENT:2.5, OTHER:8 };
+    const typeOrder = ['MAIN','CRON','SUBAGENT','OTHER'];
+
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b1020);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 15, 28);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 2, 0);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const dir = new THREE.DirectionalLight(0xb4c9ff, 1.0); dir.position.set(8, 18, 8); scene.add(dir);
+
+    // Floor
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(80, 60),
+      new THREE.MeshStandardMaterial({ color:0x131a36, roughness:.95, metalness:.05 })
+    );
+    floor.rotation.x = -Math.PI/2;
+    scene.add(floor);
+
+    // Grid
+    const grid = new THREE.GridHelper(80, 20, 0x3c4776, 0x222a4a);
+    grid.position.y = 0.01;
+    scene.add(grid);
+
+    // Night-sky stars
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 1200;
+    const starPos = new Float32Array(starCount * 3);
+    for(let i=0;i<starCount;i++){
+      const r = 45 + Math.random()*30;
+      const a = Math.random()*Math.PI*2;
+      const h = 12 + Math.random()*25;
+      starPos[i*3] = Math.cos(a)*r;
+      starPos[i*3+1] = h;
+      starPos[i*3+2] = Math.sin(a)*r;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos,3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color:0xbfd3ff, size:0.18, transparent:true, opacity:0.95 }));
+    scene.add(stars);
+
+    // Soft aurora ribbons
+    const aurora1 = new THREE.Mesh(
+      new THREE.PlaneGeometry(60, 18),
+      new THREE.MeshBasicMaterial({ color:0x6a5cff, transparent:true, opacity:0.12, side:THREE.DoubleSide })
+    );
+    aurora1.position.set(-8, 14, -20); aurora1.rotation.x = -0.5; aurora1.rotation.z = 0.15;
+    scene.add(aurora1);
+    const aurora2 = new THREE.Mesh(
+      new THREE.PlaneGeometry(50, 16),
+      new THREE.MeshBasicMaterial({ color:0x4cffcc, transparent:true, opacity:0.09, side:THREE.DoubleSide })
+    );
+    aurora2.position.set(12, 12, -18); aurora2.rotation.x = -0.45; aurora2.rotation.z = -0.12;
+    scene.add(aurora2);
+
+    // 2D cloud sprites on planes (billboard style)
+    function makeCloudTexture(){
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0,0,c.width,c.height);
+      ctx.fillStyle = 'rgba(240,246,255,0.92)';
+      const puffs = [
+        [70,70,30], [98,56,34], [132,64,30], [160,72,26], [114,78,34]
+      ];
+      for(const [x,y,r] of puffs){
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      }
+      ctx.fillRect(65,72,110,28);
+      const tex = new THREE.CanvasTexture(c);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    const clouds = [];
+    const cloudTex = makeCloudTexture();
+    for(let i=0;i<11;i++){
+      const mat = new THREE.MeshBasicMaterial({ map: cloudTex, transparent:true, opacity:0.42, depthWrite:false });
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(4.2 + Math.random()*2.2, 2.0 + Math.random()*1.0), mat);
+      plane.position.set((Math.random()-0.5)*34, 7 + Math.random()*5, -8 + Math.random()*18);
+      plane.userData.vx = 0.01 + Math.random()*0.02;
+      plane.userData.phase = Math.random()*Math.PI*2;
+      clouds.push(plane); scene.add(plane);
+    }
+
+    // Heart particles
+    const hearts = [];
+    const heartGeo = new THREE.SphereGeometry(0.12, 10, 10);
+    for(let i=0;i<24;i++){
+      const h = new THREE.Mesh(heartGeo, new THREE.MeshBasicMaterial({ color:0xff6bd6, transparent:true, opacity:0.85 }));
+      h.position.set((Math.random()-0.5)*16, 0.8 + Math.random()*3, (Math.random()-0.5)*14);
+      h.userData = { vy: 0.01 + Math.random()*0.02, drift:(Math.random()-0.5)*0.01 };
+      hearts.push(h); scene.add(h);
+    }
+
+    // Main crown marker
+    const crown = new THREE.Mesh(
+      new THREE.TorusGeometry(1.2, 0.08, 10, 40),
+      new THREE.MeshBasicMaterial({ color:0xffdf63 })
+    );
+    crown.position.set(typeX.MAIN, 1.8, -9.5);
+    crown.rotation.x = Math.PI/2;
+    scene.add(crown);
+
+    // Type signs
+    function makeLabel(text){
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = 'rgba(18,23,46,.85)';
+      ctx.fillRect(0,0,512,128);
+      ctx.strokeStyle = 'rgba(152,170,255,.9)';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(4,4,504,120);
+      ctx.fillStyle = '#e8edff';
+      ctx.font = '700 56px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 256, 68);
+      const tex = new THREE.CanvasTexture(c);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent:true });
+      const sp = new THREE.Sprite(mat);
+      sp.scale.set(7, 1.8, 1);
+      return sp;
+    }
+    typeOrder.forEach(t=>{
+      const label = makeLabel(t);
+      label.position.set(typeX[t], 4.6, -11);
+      scene.add(label);
+    });
+
+    const blobs = [];
+    const pickables = [];
+    const fallbackGeo = new THREE.SphereGeometry(0.55, 20, 20);
+
+    const loader = new GLTFLoader();
+    const modelCache = new Map();
+    const characterPool = [
+      '/assets/kenney/mini-characters/Models/GLB format/character-female-a.glb',
+      '/assets/kenney/mini-characters/Models/GLB format/character-female-b.glb',
+      '/assets/kenney/mini-characters/Models/GLB format/character-female-c.glb',
+      '/assets/kenney/mini-characters/Models/GLB format/character-male-a.glb',
+      '/assets/kenney/mini-characters/Models/GLB format/character-male-b.glb',
+      '/assets/kenney/mini-characters/Models/GLB format/character-male-c.glb',
+      '/assets/kenney/mini-characters/Models/GLB format/character-male-d.glb'
+    ];
+    const modelPaths = {
+      MAIN: characterPool,
+      CRON: characterPool,
+      SUBAGENT: characterPool,
+      OTHER: characterPool
+    };
+    const idleChairPath = '/assets/kenney/furniture-kit/Models/GLTF format/chairModernCushion.glb';
+
+    function tintModel(root, state){
+      const color = new THREE.Color(stateColor[state] ?? stateColor.UNKNOWN);
+      root.traverse(obj => {
+        if(!obj.isMesh || !obj.material) return;
+        const mat = obj.material.clone();
+        if(mat.color) mat.color.lerp(color, 0.18);
+        if('emissive' in mat){
+          mat.emissive.set(0x000000);
+          mat.emissiveIntensity = 0;
+        }
+        obj.material = mat;
+      });
+    }
+
+    async function getModel(path){
+      if(modelCache.has(path)) return modelCache.get(path);
+      const p = new Promise((resolve, reject)=>{
+        loader.load(path, gltf => resolve(gltf), undefined, reject);
+      });
+      modelCache.set(path, p);
+      return p;
+    }
+
+    function normalizeModel(root, targetHeight = 1.6){
+      // center model around origin and normalize scale so different assets don't overlap weirdly
+      const box = new THREE.Box3().setFromObject(root);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      if(size.y > 0){
+        const s = targetHeight / size.y;
+        root.scale.multiplyScalar(s);
+      }
+
+      // recalc after scaling
+      const box2 = new THREE.Box3().setFromObject(root);
+      const center2 = box2.getCenter(new THREE.Vector3());
+      const minY = box2.min.y;
+
+      root.position.x -= center2.x;
+      root.position.z -= center2.z;
+      root.position.y -= minY; // place feet on y=0
+    }
+
+    function clearBlobs(){
+      blobs.forEach(b=>{
+        if(b.anchor) scene.remove(b.anchor);
+        else if(b.mesh) scene.remove(b.mesh);
+        if(b.chair) scene.remove(b.chair);
+      });
+      blobs.length = 0;
+      pickables.length = 0;
+    }
+
+    async function makeBlob(item, iInType){
+      const baseX = typeX[item.type] ?? 0;
+      const col = iInType % 4;
+      const row = Math.floor(iInType / 4);
+      const seed = [...(item.key||'')].reduce((a,c)=>a + c.charCodeAt(0), 0);
+      const jitterX = ((seed % 7) - 3) * 0.16;
+      const jitterZ = (((seed / 7) % 7) - 3) * 0.16;
+      const x = baseX + (col-1.5)*2.2 + jitterX;
+      const y = 0.7 + ((seed % 10) * 0.01);
+      const z = -6 + row*2.2 + jitterZ;
+      const scale = 0.9 + Math.min((item.percent||0)/100, 0.9)*0.45;
+
+      let mesh;
+      let clips = [];
+      const candidates = modelPaths[item.type] || modelPaths.OTHER;
+      const chosen = candidates[Math.floor(Math.random()*candidates.length)];
+      try {
+        const src = await getModel(chosen);
+        mesh = SkeletonUtils.clone(src.scene);
+        clips = src.animations || [];
+        tintModel(mesh, item.state);
+        normalizeModel(mesh, 1.55);
+      } catch (e) {
+        const color = stateColor[item.state] ?? stateColor.UNKNOWN;
+        const mat = new THREE.MeshStandardMaterial({ color, roughness:.35, metalness:.05 });
+        mesh = new THREE.Mesh(fallbackGeo, mat);
+      }
+
+      const anchor = new THREE.Group();
+      anchor.position.set(x, 0, z);
+      scene.add(anchor);
+
+      let chair = null;
+      if(item.state === 'IDLE'){
+        try {
+          const chairGltf = await getModel(idleChairPath);
+          chair = chairGltf.scene.clone(true);
+          chair.position.set(x, 0.52, z);
+          chair.scale.setScalar(1.05);
+          chair.rotation.y = Math.PI + (Math.random()-0.5)*0.25;
+          scene.add(chair);
+        } catch(e) { /* ignore chair load fail */ }
+      }
+
+      mesh.position.set(0, item.state === 'IDLE' ? 1.05 : y, 0);
+      mesh.scale.setScalar(scale);
+      mesh.userData.item = item;
+
+      const emissiveMats = [];
+      mesh.traverse(obj => {
+        if(!obj.isMesh) return;
+        obj.userData.item = item;
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        mats.forEach(m => {
+          if(m && 'emissiveIntensity' in m) emissiveMats.push(m);
+        });
+      });
+
+      anchor.add(mesh);
+
+      let mixer = null;
+      if(clips.length){
+        const pick = (...keys) => clips.find(c => keys.some(k => c.name.toLowerCase().includes(k)));
+        const clip = item.state === 'ACTIVE'
+          ? (pick('walk') || pick('run') || pick('idle'))
+          : (pick('sit') || pick('idle') || pick('interact'));
+        if(clip){
+          mixer = new THREE.AnimationMixer(mesh);
+          const action = mixer.clipAction(clip);
+          action.reset().fadeIn(0.2).play();
+        }
+      }
+
+      blobs.push({
+        anchor,
+        mesh,
+        chair,
+        mixer,
+        baseX:x,
+        baseY:(item.state === 'IDLE' ? 1.05 : y),
+        baseZ:z,
+        pulse:Math.random()*Math.PI*2,
+        state:item.state,
+        emissiveMats,
+        roamSeed: Math.random()*Math.PI*2
+      });
+      pickables.push(anchor);
+    }
+
+    const statsEl = document.getElementById('stats');
+    async function loadSessions(){
+      const r = await fetch('sessions.json?t='+Date.now());
+      const d = await r.json();
+
+      const liveItems = (d.items || []).filter(x => x.state !== 'STALE');
+      const activeN = liveItems.filter(x => x.state === 'ACTIVE').length;
+      const idleN = liveItems.filter(x => x.state === 'IDLE').length;
+      statsEl.innerHTML = [
+        `표시 세션 <b>${liveItems.length}</b> (ACTIVE <b>${activeN}</b> · IDLE <b>${idleN}</b>)`,
+        `업데이트: ${d.generatedAtIso} · STALE은 3D에서 숨김`
+      ].join('<br>');
+
+      clearBlobs();
+      const counters = { MAIN:0, CRON:0, SUBAGENT:0, OTHER:0 };
+      const jobs = [];
+      for(const item of liveItems){
+        const t = item.type || 'OTHER';
+        const idx = counters[t] ?? 0;
+        jobs.push(makeBlob(item, idx));
+        counters[t] = idx + 1;
+      }
+      await Promise.allSettled(jobs);
+    }
+
+    // click tooltip
+    const ray = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const tooltip = document.getElementById('tooltip');
+
+    function onPointerMove(e){
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      ray.setFromCamera(mouse, camera);
+      const hits = ray.intersectObjects(pickables, true);
+      if(!hits.length){ tooltip.style.display='none'; return; }
+      let obj = hits[0].object;
+      while(obj && !obj.userData.item) obj = obj.parent;
+      const item = obj?.userData?.item;
+      if(!item){ tooltip.style.display='none'; return; }
+      tooltip.style.display='block';
+      tooltip.style.left = (e.clientX + 12)+'px';
+      tooltip.style.top = (e.clientY + 12)+'px';
+      tooltip.textContent = `${item.label?item.label+'\n':''}${item.key}\n상태: ${item.state} · 타입: ${item.type}\n토큰: ${item.totalTokens.toLocaleString()} / ${item.contextTokens.toLocaleString()} (${item.percent}%)\n최근: ${item.ageMin}분 전`;
+    }
+
+    window.addEventListener('pointermove', onPointerMove);
+
+    // animate
+    let t=0;
+    function animate(){
+      requestAnimationFrame(animate);
+      t += 0.016;
+
+      // world ambience animation
+      stars.material.opacity = 0.82 + Math.sin(t*0.7)*0.12;
+      aurora1.material.opacity = 0.10 + Math.sin(t*0.6)*0.05;
+      aurora2.material.opacity = 0.08 + Math.cos(t*0.65)*0.04;
+      crown.rotation.z += 0.01;
+
+      clouds.forEach((c, i)=>{
+        c.position.x += c.userData.vx;
+        c.position.y += Math.sin(t*0.8 + c.userData.phase + i)*0.003;
+        if(c.position.x > 22) c.position.x = -22;
+        // billboard plane toward camera
+        c.lookAt(camera.position.x, c.position.y, camera.position.z);
+      });
+
+      hearts.forEach((h, i)=>{
+        h.position.y += h.userData.vy;
+        h.position.x += h.userData.drift;
+        h.material.opacity = 0.55 + Math.sin(t*2.5 + i)*0.25;
+        if(h.position.y > 6){
+          h.position.y = 0.7;
+          h.position.x = (Math.random()-0.5)*16;
+          h.position.z = (Math.random()-0.5)*14;
+        }
+      });
+
+      blobs.forEach((b, i)=>{
+        // active: walk around (roam), idle: sit and rest on chair
+        if(b.state === 'ACTIVE'){
+          const rx = Math.cos(t*0.55 + b.roamSeed) * 0.65;
+          const rz = Math.sin(t*0.55 + b.roamSeed) * 0.65;
+          b.anchor.position.x = b.baseX + rx;
+          b.anchor.position.z = b.baseZ + rz;
+          b.mesh.position.y = b.baseY + Math.sin(t*2.4 + b.pulse + i*0.2) * 0.08;
+          b.mesh.rotation.y = Math.atan2(rz, rx) + Math.PI/2;
+        } else if (b.state === 'IDLE'){
+          b.anchor.position.x = b.baseX;
+          b.anchor.position.z = b.baseZ;
+          b.mesh.position.y = b.baseY + Math.sin(t*1.4 + b.pulse) * 0.02;
+        } else {
+          b.anchor.position.x = b.baseX;
+          b.anchor.position.z = b.baseZ;
+          b.mesh.position.y = b.baseY + Math.sin(t*1.2 + b.pulse) * 0.03;
+        }
+
+        if(b.mixer) b.mixer.update(0.016);
+
+        // no emissive glow (flat low-poly look)
+        if(b.emissiveMats?.length){
+          b.emissiveMats.forEach(m => { m.emissiveIntensity = 0; });
+        }
+      });
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', ()=>{
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    await loadSessions();
+    setInterval(loadSessions, 3000);
+    animate();
+  </script>
+</body>
+</html>
