@@ -143,6 +143,51 @@
 
     const clouds = [];
     const cloudTex = makeCloudTexture();
+
+
+    function makeBadgeTexture(kind='crown'){
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0,0,128,128);
+      if(kind==='crown'){
+        ctx.fillStyle = 'rgba(255,219,92,0.95)';
+        ctx.beginPath();
+        ctx.moveTo(18,88); ctx.lineTo(28,44); ctx.lineTo(50,72); ctx.lineTo(64,34); ctx.lineTo(78,72); ctx.lineTo(100,44); ctx.lineTo(110,88); ctx.closePath();
+        ctx.fill();
+        ctx.fillRect(18,88,92,14);
+        ctx.strokeStyle='rgba(255,245,186,0.95)'; ctx.lineWidth=4; ctx.stroke();
+      }else{
+        ctx.fillStyle='rgba(255,220,95,0.95)';
+        ctx.beginPath(); ctx.arc(64,64,38,0,Math.PI*2); ctx.fill();
+        ctx.lineWidth=6; ctx.strokeStyle='rgba(255,245,186,0.95)'; ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    function addZoneDecor(){
+      // Left zone: living room
+      const rugLiving = new THREE.Mesh(new THREE.PlaneGeometry(18, 12), new THREE.MeshBasicMaterial({color:0x26335f, transparent:true, opacity:0.22, side:THREE.DoubleSide}));
+      rugLiving.rotation.x = -Math.PI/2; rugLiving.position.set(-8.8,0.03,-3.5); envGroup.add(rugLiving);
+      // Right zone: office
+      const rugOffice = new THREE.Mesh(new THREE.PlaneGeometry(18, 12), new THREE.MeshBasicMaterial({color:0x1f4f60, transparent:true, opacity:0.22, side:THREE.DoubleSide}));
+      rugOffice.rotation.x = -Math.PI/2; rugOffice.position.set(8.8,0.03,-3.5); envGroup.add(rugOffice);
+
+      const makeZoneLabel = (text,x,z)=>{
+        const c=document.createElement('canvas'); c.width=400; c.height=120;
+        const ctx=c.getContext('2d');
+        ctx.fillStyle='rgba(18,24,48,.75)'; ctx.fillRect(0,0,400,120);
+        ctx.strokeStyle='rgba(150,170,255,.85)'; ctx.lineWidth=4; ctx.strokeRect(3,3,394,114);
+        ctx.fillStyle='#e8eeff'; ctx.font='700 46px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text,200,60);
+        const tex=new THREE.CanvasTexture(c);
+        const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
+        sp.scale.set(6.2,1.7,1); sp.position.set(x,2.9,z); envGroup.add(sp);
+      };
+      makeZoneLabel('LIVING ROOM', -8.8, -11.5);
+      makeZoneLabel('OFFICE', 8.8, -11.5);
+    }
     for(let i=0;i<11;i++){
       const mat = new THREE.MeshBasicMaterial({ map: cloudTex, transparent:true, opacity:0.42, depthWrite:false });
       const plane = new THREE.Mesh(new THREE.PlaneGeometry(4.2 + Math.random()*2.2, 2.0 + Math.random()*1.0), mat);
@@ -238,6 +283,7 @@
     async function initEnvironment(){
       if(envReady) return;
       envReady = true;
+      addZoneDecor();
 
       const place = async (path, {x=0,y=0,z=0,s=1,ry=0}={}) => {
         try {
@@ -359,6 +405,14 @@
 
       anchor.add(mesh);
 
+      let badge = null;
+      if(item.type === 'MAIN'){
+        badge = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeBadgeTexture('crown'), transparent:true }));
+        badge.scale.set(0.9,0.9,1);
+        badge.position.set(0, 2.2, 0);
+        mesh.add(badge);
+      }
+
       let mixer = null;
       if(clips.length){
         const pick = (...keys) => clips.find(c => keys.some(k => c.name.toLowerCase().includes(k)));
@@ -382,6 +436,8 @@
         baseZ:z,
         pulse:Math.random()*Math.PI*2,
         state:item.state,
+        item,
+        badge,
         emissiveMats,
         roamSeed: Math.random()*Math.PI*2
       });
