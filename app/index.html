@@ -224,14 +224,7 @@
         const qKeys = FAMILY_QUOTA_KEY[family] || [];
         const resets = qKeys.map(k => quotaResets?.[k]).filter(Boolean);
 
-        // 리셋 시간 row: "X% left" 왼쪽, "Resets ... at HH:MM" 오른쪽
-        const resetRows = resets.map(r => {
-          const txt = formatResetAt(r.resetTs);
-          return txt ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-            <span style="font-size:11px;opacity:.7">${100 - pct}% left</span>
-            <span style="font-size:11px;opacity:.5">${txt}</span>
-          </div>` : '';
-        }).filter(Boolean).join('');
+        const resetText = resets.map(r => formatResetAt(r.resetTs)).filter(Boolean).join(' · ');
 
         html += `
           <div class="hero-item">
@@ -239,7 +232,8 @@
             <div class="row"><div class="k">Active</div><div class="v" style="color:${color};font-weight:800">${stats.active} <span style="opacity:.5;font-size:11px">/ ${stats.count}</span></div></div>
             <div class="row"><div class="k">Tokens</div><div class="v">${fmtTokens(stats.tokens)}</div></div>
             <div class="usage-bar-wrap"><div class="usage-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-            ${resetRows || `<div style="font-size:10px;opacity:.6;margin-top:3px">${pct}% of total</div>`}
+            <div style="font-size:10px;opacity:.6;margin-top:3px">${pct}% of total</div>
+            ${resetText ? `<div style="font-size:10px;opacity:.5;margin-top:4px">${resetText}</div>` : ''}
           </div>`;
       }
       document.getElementById('modelGrid').innerHTML = html || "<div class='empty'>데이터 없음</div>";
