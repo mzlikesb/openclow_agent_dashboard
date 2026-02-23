@@ -84,12 +84,6 @@
       <div class="hero-grid" id="modelGrid"></div>
     </div>
 
-    <!-- Quota Resets -->
-    <div class="hero" id="quotaHero">
-      <div class="hero-title">⏰ 할당량 리셋 시간</div>
-      <div class="hero-grid" id="quotaGrid"></div>
-    </div>
-
     <!-- Luca Team Status -->
     <div class="hero" id="lucaTeamHero">
       <div class="hero-title">🎭 루카 팀 현황 (Main / Reviewer / Worker)</div>
@@ -196,40 +190,14 @@
       if(el) el.classList.toggle('expanded', expandedKeys.has(key));
     }
 
-    function renderQuotaResets(quotaResets) {
-      const el = document.getElementById('quotaGrid');
-      if(!el) return;
-      if(!quotaResets || Object.keys(quotaResets).length === 0) {
-        el.innerHTML = "<div class='empty'>데이터 없음</div>";
-        return;
-      }
-      const COLORS = {
-        gemini_pro:       '#4caf50',
-        gemini_flash:     '#8bc34a',
-        codex_primary:    '#2196f3',
-        codex_secondary:  '#42a5f5',
-      };
-      const ICONS = {
-        gemini_pro:       '🟢',
-        gemini_flash:     '🟡',
-        codex_primary:    '🔵',
-        codex_secondary:  '🔹',
-      };
-      let html = '';
-      for(const [key, info] of Object.entries(quotaResets)) {
-        const color = COLORS[key] || '#888';
-        const icon = ICONS[key] || '⚫';
-        html += `
-          <div class="hero-item" style="border-left:3px solid ${color}">
-            <div class="label">${icon} ${info.label}</div>
-            <div style="font-size:22px;font-weight:900;margin:6px 0;color:${color}">${info.remaining}</div>
-            <div style="font-size:10px;opacity:.55">후 리셋</div>
-          </div>`;
-      }
-      el.innerHTML = html;
-    }
+    // family → quotaResets key 매핑
+    const FAMILY_QUOTA_KEY = {
+      'Gemini Pro':   ['gemini_pro'],
+      'Gemini Flash': ['gemini_flash'],
+      'Codex':        ['codex_primary', 'codex_secondary'],
+    };
 
-    function renderModelStats(usage) {
+    function renderModelStats(usage, quotaResets) {
       if(!usage) return;
       const COLORS = { 'Gemini Pro':'#4caf50', 'Gemini Flash':'#8bc34a', Claude:'#d97757', Codex:'#2196f3', Other:'#888' };
       const ICONS  = { 'Gemini Pro':'🟢', 'Gemini Flash':'🟡', Claude:'🟠', Codex:'🔵', Other:'⚫' };
@@ -237,13 +205,25 @@
       let html = '';
       for(const [family, stats] of Object.entries(usage)) {
         const pct = totalTokens > 0 ? Math.round((stats.tokens / totalTokens) * 100) : 0;
+        const color = COLORS[family] || '#888';
+
+        // 리셋 시간 텍스트 조합
+        let resetHtml = '';
+        const qKeys = FAMILY_QUOTA_KEY[family] || [];
+        const resets = qKeys.map(k => quotaResets?.[k]).filter(Boolean);
+        if(resets.length > 0) {
+          const parts = resets.map(r => `⏱ ${r.remaining}`).join(' · ');
+          resetHtml = `<div style="font-size:10px;opacity:.55;margin-top:4px;color:${color}">${parts} 후 리셋</div>`;
+        }
+
         html += `
           <div class="hero-item">
             <div class="label">${ICONS[family]||'⚫'} ${family}</div>
-            <div class="row"><div class="k">Active</div><div class="v" style="color:${COLORS[family]||'#fff'};font-weight:800">${stats.active} <span style="opacity:.5;font-size:11px">/ ${stats.count}</span></div></div>
+            <div class="row"><div class="k">Active</div><div class="v" style="color:${color};font-weight:800">${stats.active} <span style="opacity:.5;font-size:11px">/ ${stats.count}</span></div></div>
             <div class="row"><div class="k">Tokens</div><div class="v">${fmtTokens(stats.tokens)}</div></div>
-            <div class="usage-bar-wrap"><div class="usage-bar-fill" style="width:${pct}%;background:${COLORS[family]||'#888'}"></div></div>
+            <div class="usage-bar-wrap"><div class="usage-bar-fill" style="width:${pct}%;background:${color}"></div></div>
             <div style="font-size:10px;opacity:.6;margin-top:3px">${pct}% of total</div>
+            ${resetHtml}
           </div>`;
       }
       document.getElementById('modelGrid').innerHTML = html || "<div class='empty'>데이터 없음</div>";
@@ -318,8 +298,7 @@
           <div class='chip'>🛠️ Worker: <b>${d.summary.byType?.WORKER||0}</b></div>
           <div class='chip'>스냅샷: <b>${d.generatedAtIso}</b></div>`;
 
-        renderQuotaResets(d.summary.quotaResets);
-        renderModelStats(d.summary.modelUsage);
+        renderModelStats(d.summary.modelUsage, d.summary.quotaResets);
         renderLucaTeam(d.items || []);
         renderSections(d);
       } catch(e) {
