@@ -210,6 +210,7 @@ for key, v in all_sessions.items():
         'abortedLastRun': aborted,
     })
 
+items = [x for x in items if x['state'] != 'STALE']
 items.sort(key=lambda x: x.get('updatedAt', 0), reverse=True)
 
 by_type = {}
