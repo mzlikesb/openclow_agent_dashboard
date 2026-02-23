@@ -3,6 +3,7 @@ import json
 import time
 import urllib.request
 import urllib.error
+import urllib.parse
 from pathlib import Path
 
 AGENTS_DIR = Path('/home/ubuntu/.openclaw/agents')
@@ -29,6 +30,47 @@ def fmt_reset_remaining(reset_ts_sec: float) -> str:
     days = hours // 24
     return f"{days}일 {hours % 24}h"
 
+GEMINI_CLI_OAUTH2_JS = Path('/usr/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/oauth2.js')
+
+def _read_gemini_client_creds() -> tuple[str, str]:
+    """Gemini CLI oauth2.js에서 client_id/secret 읽기"""
+    import re
+    src = GEMINI_CLI_OAUTH2_JS.read_text()
+    cid = re.search(r"CLIENT_ID\s*=\s*'([^']+)'", src)
+    csecret = re.search(r"OAUTH_CLIENT_SECRET\s*=\s*'([^']+)'", src)
+    return (cid.group(1) if cid else '', csecret.group(1) if csecret else '')
+
+def refresh_gemini_token(refresh_token: str) -> str | None:
+    """refresh_token으로 새 access_token 발급"""
+    try:
+        client_id, client_secret = _read_gemini_client_creds()
+        data = urllib.parse.urlencode({
+            'client_id':     client_id,
+            'client_secret': client_secret,
+            'refresh_token': refresh_token,
+            'grant_type':    'refresh_token',
+        }).encode()
+        req = urllib.request.Request('https://oauth2.googleapis.com/token', data=data)
+        with urllib.request.urlopen(req, timeout=5) as r:
+            d = json.loads(r.read())
+            return d.get('access_token')
+    except Exception:
+        return None
+
+def get_gemini_token(auth: dict) -> str:
+    """유효한 Gemini access_token 반환 (만료 시 자동 갱신)"""
+    g = auth.get('google-gemini-cli', {})
+    expires = g.get('expires', 0)
+    now_ms  = int(time.time() * 1000)
+    if expires > now_ms + 60_000:          # 1분 여유
+        return g.get('access', '')
+    new_token = refresh_gemini_token(g.get('refresh', ''))
+    if new_token:
+        auth['google-gemini-cli']['access']  = new_token
+        auth['google-gemini-cli']['expires'] = now_ms + 3600_000
+        AUTH_FILE.write_text(json.dumps(auth, indent=2))
+    return new_token or g.get('access', '')
+
 def fetch_quota_resets() -> dict:
     """Gemini / Codex 리셋 타임 가져오기"""
     result = {}
@@ -41,7 +83,7 @@ def fetch_quota_resets() -> dict:
 
     # --- Gemini ---
     try:
-        token = auth.get('google-gemini-cli', {}).get('access', '')
+        token = get_gemini_token(auth)
         req = urllib.request.Request(
             'https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota',
             data=b'{}', method='POST',
