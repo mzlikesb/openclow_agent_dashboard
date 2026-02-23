@@ -58,7 +58,7 @@
       STALE: 0x98a0b3,
       UNKNOWN: 0xc7c9d3,
     };
-    const typeX = { MAIN:-8, CRON:-2.5, SUBAGENT:2.5, OTHER:8 };
+    const typeX = { MAIN:-10.5, CRON:-3.5, SUBAGENT:3.5, OTHER:10.5 };
     const typeOrder = ['MAIN','CRON','SUBAGENT','OTHER'];
 
     const renderer = new THREE.WebGLRenderer({ antialias:true });
@@ -70,11 +70,11 @@
     scene.background = new THREE.Color(0x0b1020);
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 15, 28);
+    camera.position.set(0, 13, 24);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.target.set(0, 2, 0);
+    controls.target.set(0, 1.8, -2.5);
 
     const keyState = { w:false, a:false, s:false, d:false, q:false, e:false };
     const moveSpeed = 0.22;
@@ -179,20 +179,24 @@
     }
 
     function addZoneDecor(){
-      // opaque floor zones + simple walls (sample-like interior blocks)
-      const floorLiving = new THREE.Mesh(new THREE.PlaneGeometry(18, 12), new THREE.MeshStandardMaterial({color:0xf0d6ab, roughness:.95, metalness:0}));
-      floorLiving.rotation.x = -Math.PI/2; floorLiving.position.set(-8.8,0.04,-3.5); envGroup.add(floorLiving);
+      // three room lanes with wider center corridor for better camera visibility
+      const floorLeft = new THREE.Mesh(new THREE.PlaneGeometry(12, 14), new THREE.MeshStandardMaterial({color:0xf2d9b3, roughness:.95, metalness:0}));
+      floorLeft.rotation.x = -Math.PI/2; floorLeft.position.set(-10.5,0.04,-4.2); envGroup.add(floorLeft);
 
-      const floorOffice = new THREE.Mesh(new THREE.PlaneGeometry(18, 12), new THREE.MeshStandardMaterial({color:0xd9dde5, roughness:.96, metalness:0}));
-      floorOffice.rotation.x = -Math.PI/2; floorOffice.position.set(8.8,0.04,-3.5); envGroup.add(floorOffice);
+      const floorCenter = new THREE.Mesh(new THREE.PlaneGeometry(11, 14), new THREE.MeshStandardMaterial({color:0xe8edf8, roughness:.96, metalness:0}));
+      floorCenter.rotation.x = -Math.PI/2; floorCenter.position.set(0,0.04,-4.2); envGroup.add(floorCenter);
+
+      const floorRight = new THREE.Mesh(new THREE.PlaneGeometry(12, 14), new THREE.MeshStandardMaterial({color:0xdfe4ea, roughness:.96, metalness:0}));
+      floorRight.rotation.x = -Math.PI/2; floorRight.position.set(10.5,0.04,-4.2); envGroup.add(floorRight);
 
       const wallMat = new THREE.MeshStandardMaterial({ color:0xf8f8f4, roughness:.95, metalness:0.02 });
       const mkWall=(w,h,d,x,y,z,ry=0)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat); m.position.set(x,y,z); m.rotation.y=ry; envGroup.add(m); };
-      mkWall(36, 3.2, 0.35, 0, 1.6, -12.5, 0);   // back wall
-      mkWall(0.35, 3.2, 20, -18, 1.6, -2.5, 0);  // left wall
-      mkWall(0.35, 3.2, 20, 18, 1.6, -2.5, 0);   // right wall
-      mkWall(8.5, 3.0, 0.3, -3.8, 1.5, -1.0, Math.PI/2); // divider 1
-      mkWall(8.5, 3.0, 0.3, 3.8, 1.5, -1.0, Math.PI/2);  // divider 2
+      mkWall(37.5, 3.2, 0.35, 0, 1.6, -12.8, 0);     // back wall
+      mkWall(37.5, 3.2, 0.35, 0, 1.6, 4.2, 0);        // front wall
+      mkWall(0.35, 3.2, 17.5, -18.8, 1.6, -4.3, 0);  // left wall
+      mkWall(0.35, 3.2, 17.5, 18.8, 1.6, -4.3, 0);   // right wall
+      mkWall(0.28, 3.0, 17.5, -5.8, 1.5, -4.3, 0);   // divider left/center
+      mkWall(0.28, 3.0, 17.5, 5.8, 1.5, -4.3, 0);    // divider center/right
     }
 
     async function initEnvironment(){
@@ -218,23 +222,23 @@
       await place('/assets/kenney/furniture-kit/Models/GLTF format/wallDoorway.glb', {x:0,y:0,z:-16,s:2.2});
 
       // cozy props
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/loungeSofaLong.glb', {x:-10,y:0,z:-7,s:1.2,ry:0.5});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/tableCoffeeGlass.glb', {x:-7.8,y:0,z:-5.4,s:1.1,ry:0.4});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/desk.glb', {x:10,y:0,z:-7,s:1.2,ry:-0.4});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/computerScreen.glb', {x:10.1,y:1.02,z:-6.95,s:1.2,ry:-0.4});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/speakerSmall.glb', {x:11.5,y:1.05,z:-6.95,s:1.0,ry:0.2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/loungeSofaLong.glb', {x:-12.2,y:0,z:-7.8,s:1.2,ry:0.45});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/tableCoffeeGlass.glb', {x:-10.0,y:0,z:-6.0,s:1.05,ry:0.35});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/desk.glb', {x:12.2,y:0,z:-7.8,s:1.2,ry:-0.45});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/computerScreen.glb', {x:12.25,y:1.02,z:-7.7,s:1.2,ry:-0.45});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/speakerSmall.glb', {x:13.6,y:1.05,z:-7.6,s:1.0,ry:0.1});
 
       // food props for cuteness
-      await place('/assets/kenney/food-kit/Models/GLB format/donut.glb', {x:-7.5,y:0.95,z:-5.1,s:0.8,ry:0.2});
-      await place('/assets/kenney/food-kit/Models/GLB format/pizza.glb', {x:10.2,y:1.05,z:-6.5,s:0.6,ry:0.3});
+      await place('/assets/kenney/food-kit/Models/GLB format/donut.glb', {x:-9.7,y:0.95,z:-5.7,s:0.8,ry:0.2});
+      await place('/assets/kenney/food-kit/Models/GLB format/pizza.glb', {x:12.3,y:1.05,z:-7.2,s:0.6,ry:0.3});
 
       // extra wall/floor dressing
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/bookcaseOpen.glb', {x:-13.2,y:0,z:-9.8,s:1.1,ry:0.3});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/lamp-floor.glb', {x:-12.0,y:0,z:-5.8,s:1.1,ry:0.2});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/kitchenCabinetDrawer.glb', {x:12.8,y:0,z:-9.2,s:1.1,ry:-0.35});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/kitchenFridgeBuiltIn.glb', {x:14.8,y:0,z:-9.8,s:1.15,ry:-0.45});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:-17.5,y:0,z:-6.5,s:2.0,ry:Math.PI/2});
-      await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:17.5,y:0,z:-6.5,s:2.0,ry:-Math.PI/2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/bookcaseOpen.glb', {x:-15.4,y:0,z:-10.3,s:1.05,ry:0.28});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/lamp-floor.glb', {x:-14.4,y:0,z:-5.8,s:1.08,ry:0.2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/kitchenCabinetDrawer.glb', {x:14.3,y:0,z:-9.8,s:1.08,ry:-0.35});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/kitchenFridgeBuiltIn.glb', {x:16.2,y:0,z:-10.2,s:1.12,ry:-0.45});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:-18.3,y:0,z:-6.8,s:2.0,ry:Math.PI/2});
+      await place('/assets/kenney/furniture-kit/Models/GLTF format/paneling.glb', {x:18.3,y:0,z:-6.8,s:2.0,ry:-Math.PI/2});
     }
 
     function normalizeModel(root, targetHeight = 1.6){
@@ -270,14 +274,14 @@
 
     async function makeBlob(item, iInType){
       const baseX = typeX[item.type] ?? 0;
-      const col = iInType % 4;
-      const row = Math.floor(iInType / 4);
+      const col = iInType % 3;
+      const row = Math.floor(iInType / 3);
       const seed = [...(item.key||'')].reduce((a,c)=>a + c.charCodeAt(0), 0);
-      const jitterX = ((seed % 7) - 3) * 0.16;
-      const jitterZ = (((seed / 7) % 7) - 3) * 0.16;
-      const x = baseX + (col-1.5)*2.2 + jitterX;
+      const jitterX = ((seed % 7) - 3) * 0.14;
+      const jitterZ = (((seed / 7) % 7) - 3) * 0.14;
+      const x = baseX + (col-1.0)*2.9 + jitterX;
       const y = 0.7 + ((seed % 10) * 0.01);
-      const z = -6 + row*2.2 + jitterZ;
+      const z = -7 + row*2.9 + jitterZ;
       const scale = 0.9 + Math.min((item.percent||0)/100, 0.9)*0.45;
 
       let mesh;
@@ -327,13 +331,7 @@
 
       anchor.add(mesh);
 
-      let badge = null;
-      if(item.type === 'MAIN'){
-        badge = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeBadgeTexture('crown'), transparent:true }));
-        badge.scale.set(0.9,0.9,1);
-        badge.position.set(0, 2.2, 0);
-        mesh.add(badge);
-      }
+      const badge = null;
 
       let mixer = null;
       if(clips.length){
@@ -362,7 +360,9 @@
         badge,
         emissiveMats,
         roamSeed: Math.random()*Math.PI*2,
-        facingOffset: 0
+        prevX: x,
+        prevZ: z,
+        yaw: 0
       });
       pickables.push(anchor);
     }
@@ -448,13 +448,25 @@
       blobs.forEach((b, i)=>{
         // active: walk around (roam), idle: sit and rest on chair
         if(b.state === 'ACTIVE'){
-          const rx = Math.cos(t*0.55 + b.roamSeed) * 0.65;
-          const rz = Math.sin(t*0.55 + b.roamSeed) * 0.65;
-          b.anchor.position.x = b.baseX + rx;
-          b.anchor.position.z = b.baseZ + rz;
+          const rx = Math.cos(t*0.55 + b.roamSeed) * 0.95;
+          const rz = Math.sin(t*0.55 + b.roamSeed) * 0.95;
+          const nx = b.baseX + rx;
+          const nz = b.baseZ + rz;
+          const vx = nx - b.prevX;
+          const vz = nz - b.prevZ;
+
+          b.anchor.position.x = nx;
+          b.anchor.position.z = nz;
           b.mesh.position.y = b.baseY + Math.sin(t*2.4 + b.pulse + i*0.2) * 0.08;
-          b.anchor.lookAt(b.anchor.position.x + rx, b.anchor.position.y, b.anchor.position.z + rz);
-          b.mesh.rotation.y = b.facingOffset;
+
+          if((vx*vx + vz*vz) > 0.000001){
+            const targetYaw = Math.atan2(vx, vz);
+            b.yaw += (targetYaw - b.yaw) * 0.28;
+            b.anchor.rotation.y = b.yaw;
+          }
+
+          b.prevX = nx;
+          b.prevZ = nz;
         } else if (b.state === 'IDLE'){
           b.anchor.position.x = b.baseX;
           b.anchor.position.z = b.baseZ;

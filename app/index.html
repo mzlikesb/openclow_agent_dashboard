@@ -15,19 +15,30 @@
     .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
     .chip{background:var(--chip);border:1px solid var(--chipLine);padding:8px 12px;border-radius:999px;font-size:13px}
-    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-    .theme-wrap{display:flex;justify-content:flex-end;margin:6px 0 12px}
+    .theme-wrap{display:flex;justify-content:flex-end;margin:6px 0 12px;gap:8px}
     .btn{background:var(--btn);border:1px solid var(--btnLine);color:var(--btnText);padding:7px 12px;border-radius:999px;font-size:12px;cursor:pointer}
     .btn.active{background:#6d6cff;border-color:#8f8eff;color:#fff;font-weight:700}
     .hero{background:linear-gradient(145deg,var(--hero1),var(--hero2));border:1px solid var(--heroLine);border-radius:18px;padding:16px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    .hero-title{font-size:14px;opacity:.9;margin-bottom:8px}
-    .hero-key{font-weight:800;font-size:15px;word-break:break-all}
-    .hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
-    .hero-item{background:var(--heroItem);border:1px solid var(--heroItemLine);border-radius:12px;padding:8px}
+    .hero-title{font-size:14px;font-weight:700;opacity:.9;margin-bottom:10px}
+    .hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px}
+    .hero-item{background:var(--heroItem);border:1px solid var(--heroItemLine);border-radius:12px;padding:10px}
+    .hero-item .label{font-size:13px;font-weight:800;margin-bottom:6px}
     .section{margin:18px 0 8px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-    .card{background:linear-gradient(145deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,.22)}
-    .name{font-size:14px;font-weight:800;word-break:break-all;margin-bottom:8px}
+
+    /* Collapsible Card */
+    .card{background:linear-gradient(145deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.22);overflow:hidden}
+    .card-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;user-select:none;gap:8px}
+    .card-header:hover{background:rgba(255,255,255,.04)}
+    .card-header-left{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+    .card-name{font-size:13px;font-weight:800;word-break:break-all;opacity:.9}
+    .card-header-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+    .chevron{font-size:12px;opacity:.6;transition:transform .2s;display:inline-block}
+    .card.expanded .chevron{transform:rotate(180deg)}
+    .card-body{padding:0 14px 14px;display:none}
+    .card.expanded .card-body{display:block}
+
+    .name{font-size:13px;font-weight:800;word-break:break-all;margin-bottom:8px;opacity:.9}
     .row{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:4px 0}
     .k{font-size:12px;opacity:.72}
     .v{font-size:13px}
@@ -37,10 +48,21 @@
     .STALE{background:#3b2020;color:#ffabab}
     .UNKNOWN{background:#2d2d2d;color:#ddd}
     .type{background:#2a3170;color:#d8ddff}
-    .bar{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--barBg);border:1px solid var(--barLine);padding:6px 8px;border-radius:8px;margin-top:8px;letter-spacing:.4px}
+    .bar{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--barBg);border:1px solid var(--barLine);padding:6px 8px;border-radius:8px;margin-top:8px;letter-spacing:.4px;font-size:12px}
     .tiny{opacity:.68;font-size:11px;margin-top:8px}
     .footer{opacity:.55;margin-top:16px;font-size:12px}
     .empty{opacity:.7;border:1px dashed var(--heroLine);border-radius:12px;padding:14px;text-align:center}
+    /* Model border colors */
+    .model-gemini{border-left:3px solid #4caf50}
+    .model-claude{border-left:3px solid #d97757}
+    .model-codex{border-left:3px solid #2196f3}
+    .model-other{border-left:3px solid #888}
+    /* Luca team top border */
+    .luca-main{border-top:3px solid #6d6cff}
+    .luca-reviewer{border-top:3px solid #f06292}
+    .luca-worker{border-top:3px solid #ffb74d}
+    .usage-bar-wrap{height:8px;background:rgba(255,255,255,.1);border-radius:4px;margin-top:6px;overflow:hidden}
+    .usage-bar-fill{height:100%;border-radius:4px;transition:width .3s}
   </style>
 </head>
 <body>
@@ -48,25 +70,33 @@
     <div class="topbar">
       <div>
         <div class="title">💜 Luca Session Garden</div>
-        <div class="sub">귀엽게 보는 실시간 세션 현황판 (3초 갱신) · 타입별 그룹: MAIN / CRON / SUBAGENT / OTHER</div>
+        <div class="sub">귀엽게 보는 실시간 세션 현황판 (3초 갱신)</div>
       </div>
-      <div class="theme-wrap" style="gap:8px;">
-        <a class="btn" href="/three.html" style="text-decoration:none;display:inline-flex;align-items:center;">🎮 3D 보기</a>
-        <button class="btn" id="themeBtn">🌙 다크모드</button>
+      <div class="theme-wrap">
+        <a class="btn" href="/three.html" style="text-decoration:none;display:inline-flex;align-items:center;">🎮 3D</a>
+        <button class="btn" id="themeBtn">🌙</button>
       </div>
     </div>
 
-    <div class="hero" id="hero"></div>
+    <!-- Model Usage -->
+    <div class="hero" id="modelHero">
+      <div class="hero-title">📊 모델별 사용량 (Active Sessions / Total Tokens)</div>
+      <div class="hero-grid" id="modelGrid"></div>
+    </div>
+
+    <!-- Quota Resets -->
+    <div class="hero" id="quotaHero">
+      <div class="hero-title">⏰ 할당량 리셋 시간</div>
+      <div class="hero-grid" id="quotaGrid"></div>
+    </div>
+
+    <!-- Luca Team Status -->
+    <div class="hero" id="lucaTeamHero">
+      <div class="hero-title">🎭 루카 팀 현황 (Main / Reviewer / Worker)</div>
+      <div class="hero-grid" id="lucaTeamGrid"></div>
+    </div>
 
     <div class="chips" id="chips"></div>
-
-    <div class="controls">
-      <button class="btn filter-btn active" data-filter="DEFAULT">default</button>
-      <button class="btn filter-btn" data-filter="TOTAL">total</button>
-      <button class="btn filter-btn" data-filter="ACTIVE_ONLY">activate</button>
-      <button class="btn filter-btn" data-filter="IDLE_ONLY">idle</button>
-      <button class="btn filter-btn" data-filter="STALE_ONLY">stale</button>
-    </div>
 
     <div id="sections"></div>
     <div class="footer">ACTIVE: 최근 20분 · IDLE: 20~180분 · STALE: 180분 초과 또는 aborted</div>
@@ -74,32 +104,36 @@
 
   <script>
     const TYPE_META = {
-      MAIN: { icon: '👑', name: '메인 세션' },
-      CRON: { icon: '⏰', name: '크론 세션' },
+      MAIN:     { icon: '👑', name: '메인 세션' },
+      REVIEWER: { icon: '🔍', name: '리뷰어 세션' },
+      WORKER:   { icon: '🛠️', name: '워커 세션' },
+      CRON:     { icon: '⏰', name: '크론 세션' },
       SUBAGENT: { icon: '🤖', name: '서브에이전트 세션' },
-      OTHER: { icon: '🧩', name: '기타 세션' },
+      OTHER:    { icon: '🧩', name: '기타 세션' },
     };
 
-    let currentFilter = 'DEFAULT';
+    // Track which cards are expanded (persisted by key)
+    const expandedKeys = new Set(JSON.parse(localStorage.getItem('luca-expanded') || '[]'));
     let latestData = null;
+
+    function saveExpanded() {
+      localStorage.setItem('luca-expanded', JSON.stringify([...expandedKeys]));
+    }
 
     function applyTheme(theme){
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('luca-theme', theme);
       const btn = document.getElementById('themeBtn');
-      if(btn) btn.textContent = theme === 'dark' ? '☀️ 라이트로 전환' : '🌙 다크로 전환';
+      if(btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
     }
 
     function initTheme(){
       const saved = localStorage.getItem('luca-theme');
       applyTheme(saved || 'dark');
-      const btn = document.getElementById('themeBtn');
-      if(btn){
-        btn.onclick = () => {
-          const now = document.documentElement.getAttribute('data-theme') || 'dark';
-          applyTheme(now === 'dark' ? 'light' : 'dark');
-        };
-      }
+      document.getElementById('themeBtn').onclick = () => {
+        const now = document.documentElement.getAttribute('data-theme') || 'dark';
+        applyTheme(now === 'dark' ? 'light' : 'dark');
+      };
     }
 
     function humanizeAge(ageMin){
@@ -115,110 +149,185 @@
       return parts.join(' ');
     }
 
+    function fmtTokens(n) {
+      if(n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+      if(n >= 1000) return (n/1000).toFixed(1) + 'k';
+      return String(n);
+    }
+
     function cardHTML(s){
+      const cardKey = s.key;
+      const isExpanded = expandedKeys.has(cardKey);
       const name = `${s.label ? s.label+' · ' : ''}${s.key}`;
+      const familyCls = (s.family === 'Gemini Pro' || s.family === 'Gemini Flash') ? 'model-gemini' : s.family === 'Claude' ? 'model-claude' : s.family === 'Codex' ? 'model-codex' : 'model-other';
+
       return `
-        <div class="card">
-          <div class="row">
-            <div class="name">${name}</div>
-            <div class="badge ${s.state}">${s.state}</div>
+        <div class="card ${familyCls}${isExpanded ? ' expanded' : ''}" data-key="${cardKey}">
+          <div class="card-header" onclick="toggleCard('${cardKey}')">
+            <div class="card-header-left">
+              <div class="card-name">${name}</div>
+            </div>
+            <div class="card-header-right">
+              <span class="badge ${s.state}">${s.state}</span>
+              <span class="badge type">${s.type}</span>
+              <span class="chevron">▼</span>
+            </div>
           </div>
-          <div class="row"><div class="k">타입</div><div class="v"><span class="badge type">${s.type}</span></div></div>
-          <div class="row"><div class="k">모델</div><div class="v">${s.model || '-'}</div></div>
-          <div class="row"><div class="k">채널</div><div class="v">${s.channel || '-'}</div></div>
-          <div class="row"><div class="k">토큰</div><div class="v">${(s.totalTokens||0).toLocaleString()} / ${(s.contextTokens||0).toLocaleString()} (${s.percent}%)</div></div>
-          <div class="bar">${s.bar}</div>
-          <div class="tiny">최근 업데이트: ${humanizeAge(s.ageMin)} 전${s.abortedLastRun ? ' · aborted' : ''}</div>
+          <div class="card-body">
+            <div class="row"><div class="k">모델</div><div class="v" style="font-size:11px">${s.model || '-'}</div></div>
+            <div class="row"><div class="k">채널</div><div class="v">${s.channel || '-'}</div></div>
+            <div class="row"><div class="k">토큰</div><div class="v">${(s.totalTokens||0).toLocaleString()} / ${(s.contextTokens||0).toLocaleString()} (${s.percent}%)</div></div>
+            <div class="bar">${s.bar}</div>
+            <div class="tiny">최근 업데이트: ${humanizeAge(s.ageMin)} 전${s.abortedLastRun ? ' · aborted' : ''}</div>
+          </div>
         </div>
       `;
     }
 
-    function renderHero(items){
-      const main = items.find(x => x.type === 'MAIN') || items[0];
-      const hero = document.getElementById('hero');
-      if(!main){
-        hero.innerHTML = `<div class='empty'>세션 데이터가 아직 없어.</div>`;
+    function toggleCard(key) {
+      if(expandedKeys.has(key)) {
+        expandedKeys.delete(key);
+      } else {
+        expandedKeys.add(key);
+      }
+      saveExpanded();
+      // Toggle DOM directly without full re-render
+      const el = document.querySelector(`.card[data-key="${CSS.escape(key)}"]`);
+      if(el) el.classList.toggle('expanded', expandedKeys.has(key));
+    }
+
+    function renderQuotaResets(quotaResets) {
+      const el = document.getElementById('quotaGrid');
+      if(!el) return;
+      if(!quotaResets || Object.keys(quotaResets).length === 0) {
+        el.innerHTML = "<div class='empty'>데이터 없음</div>";
         return;
       }
-      hero.innerHTML = `
-        <div class='hero-title'>🌟 메인 세션 핵심 위젯</div>
-        <div class='hero-key'>${main.key}</div>
-        <div class='hero-grid'>
-          <div class='hero-item'><div class='k'>상태</div><div class='v'><span class='badge ${main.state}'>${main.state}</span></div></div>
-          <div class='hero-item'><div class='k'>모델</div><div class='v'>${main.model || '-'}</div></div>
-          <div class='hero-item'><div class='k'>토큰 점유율</div><div class='v'>${main.percent}%</div></div>
-          <div class='hero-item'><div class='k'>최근 업데이트</div><div class='v'>${humanizeAge(main.ageMin)} 전</div></div>
-        </div>
-        <div class='bar' style='margin-top:10px'>${main.bar}</div>
-      `;
+      const COLORS = {
+        gemini_pro:       '#4caf50',
+        gemini_flash:     '#8bc34a',
+        codex_primary:    '#2196f3',
+        codex_secondary:  '#42a5f5',
+      };
+      const ICONS = {
+        gemini_pro:       '🟢',
+        gemini_flash:     '🟡',
+        codex_primary:    '🔵',
+        codex_secondary:  '🔹',
+      };
+      let html = '';
+      for(const [key, info] of Object.entries(quotaResets)) {
+        const color = COLORS[key] || '#888';
+        const icon = ICONS[key] || '⚫';
+        html += `
+          <div class="hero-item" style="border-left:3px solid ${color}">
+            <div class="label">${icon} ${info.label}</div>
+            <div style="font-size:22px;font-weight:900;margin:6px 0;color:${color}">${info.remaining}</div>
+            <div style="font-size:10px;opacity:.55">후 리셋</div>
+          </div>`;
+      }
+      el.innerHTML = html;
     }
 
-    function filteredItems(items){
-      if(currentFilter === 'DEFAULT') return items.filter(x => x.state === 'ACTIVE' || x.state === 'IDLE');
-      if(currentFilter === 'TOTAL') return items;
-      if(currentFilter === 'ACTIVE_ONLY') return items.filter(x => x.state === 'ACTIVE');
-      if(currentFilter === 'IDLE_ONLY') return items.filter(x => x.state === 'IDLE');
-      if(currentFilter === 'STALE_ONLY') return items.filter(x => x.state === 'STALE');
-      return items;
+    function renderModelStats(usage) {
+      if(!usage) return;
+      const COLORS = { 'Gemini Pro':'#4caf50', 'Gemini Flash':'#8bc34a', Claude:'#d97757', Codex:'#2196f3', Other:'#888' };
+      const ICONS  = { 'Gemini Pro':'🟢', 'Gemini Flash':'🟡', Claude:'🟠', Codex:'🔵', Other:'⚫' };
+      const totalTokens = Object.values(usage).reduce((a,b) => a + b.tokens, 0);
+      let html = '';
+      for(const [family, stats] of Object.entries(usage)) {
+        const pct = totalTokens > 0 ? Math.round((stats.tokens / totalTokens) * 100) : 0;
+        html += `
+          <div class="hero-item">
+            <div class="label">${ICONS[family]||'⚫'} ${family}</div>
+            <div class="row"><div class="k">Active</div><div class="v" style="color:${COLORS[family]||'#fff'};font-weight:800">${stats.active} <span style="opacity:.5;font-size:11px">/ ${stats.count}</span></div></div>
+            <div class="row"><div class="k">Tokens</div><div class="v">${fmtTokens(stats.tokens)}</div></div>
+            <div class="usage-bar-wrap"><div class="usage-bar-fill" style="width:${pct}%;background:${COLORS[family]||'#888'}"></div></div>
+            <div style="font-size:10px;opacity:.6;margin-top:3px">${pct}% of total</div>
+          </div>`;
+      }
+      document.getElementById('modelGrid').innerHTML = html || "<div class='empty'>데이터 없음</div>";
+    }
+
+    function renderLucaTeam(items) {
+      const byAgent = { MAIN: null, REVIEWER: null, WORKER: null };
+      const agentLabels = { MAIN: '👑 메인', REVIEWER: '🔍 리뷰어', WORKER: '🛠️ 워커' };
+      const agentCls   = { MAIN: 'luca-main', REVIEWER: 'luca-reviewer', WORKER: 'luca-worker' };
+
+      for(const it of items) {
+        if(!byAgent.hasOwnProperty(it.type)) continue;
+        if(!byAgent[it.type] || it.updatedAt > byAgent[it.type].updatedAt) {
+          byAgent[it.type] = it;
+        }
+      }
+
+      let html = '';
+      for(const [type, label] of Object.entries(agentLabels)) {
+        const s = byAgent[type];
+        if(!s) {
+          html += `<div class="hero-item ${agentCls[type]}"><div class="label">${label}</div><div style="opacity:.5;font-size:12px">세션 없음</div></div>`;
+          continue;
+        }
+        html += `
+          <div class="hero-item ${agentCls[type]}">
+            <div class="label">${label}</div>
+            <div class="row"><div class="k">상태</div><div class="v"><span class="badge ${s.state}">${s.state}</span></div></div>
+            <div class="row"><div class="k">모델</div><div class="v" style="font-size:11px">${s.model||'-'}</div></div>
+            <div class="row"><div class="k">채널</div><div class="v" style="font-size:11px">${s.channel||'-'}</div></div>
+            <div class="row"><div class="k">토큰</div><div class="v">${fmtTokens(s.totalTokens)} (${s.percent}%)</div></div>
+            <div class="bar" style="font-size:10px">${s.bar}</div>
+            <div class="tiny">업데이트: ${humanizeAge(s.ageMin)} 전</div>
+          </div>`;
+      }
+      document.getElementById('lucaTeamGrid').innerHTML = html;
     }
 
     function renderSections(data){
-      const items = filteredItems(data.items || []);
+      const items = data.items || [];
       const byType = {};
       for(const it of items){
         byType[it.type] = byType[it.type] || [];
         byType[it.type].push(it);
       }
 
-      const order = ['MAIN','CRON','SUBAGENT','OTHER'];
-      const sections = document.getElementById('sections');
-
+      const order = ['MAIN','REVIEWER','WORKER','CRON','SUBAGENT','OTHER'];
       const html = order
-        .filter(t => (byType[t] || []).length > 0)
+        .filter(t => (byType[t]||[]).length > 0)
         .map(t => {
           const meta = TYPE_META[t] || TYPE_META.OTHER;
           return `
             <div class="section">${meta.icon} ${meta.name} <span style="opacity:.7;font-size:12px">(${byType[t].length})</span></div>
-            <div class="grid">${byType[t].map(cardHTML).join('')}</div>
-          `;
+            <div class="grid">${byType[t].map(cardHTML).join('')}</div>`;
         }).join('');
 
-      sections.innerHTML = html || `<div class='empty'>현재 필터에서 표시할 세션이 없어.</div>`;
-    }
-
-    function bindFilters(){
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.onclick = () => {
-          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          currentFilter = btn.dataset.filter;
-          if(latestData){
-            renderSections(latestData);
-          }
-        };
-      });
+      document.getElementById('sections').innerHTML = html || `<div class='empty'>표시할 세션이 없어.</div>`;
     }
 
     async function load(){
-      const res = await fetch('sessions.json?t=' + Date.now());
-      const d = await res.json();
-      latestData = d;
+      try {
+        const res = await fetch('sessions.json?t=' + Date.now());
+        const d = await res.json();
+        latestData = d;
 
-      const chips = document.getElementById('chips');
-      chips.innerHTML = `
-        <div class='chip'>총 세션: <b>${d.summary.total}</b></div>
-        <div class='chip'>🟢 ACTIVE: <b>${d.summary.active}</b></div>
-        <div class='chip'>🟡 IDLE: <b>${d.summary.idle}</b></div>
-        <div class='chip'>⚫ STALE: <b>${d.summary.stale}</b></div>
-        <div class='chip'>스냅샷: <b>${d.generatedAtIso}</b></div>
-      `;
+        document.getElementById('chips').innerHTML = `
+          <div class='chip'>총 세션: <b>${d.summary.total}</b></div>
+          <div class='chip'>🟢 ACTIVE: <b>${d.summary.active}</b></div>
+          <div class='chip'>🟡 IDLE: <b>${d.summary.idle}</b></div>
+          <div class='chip'>⚫ STALE: <b>${d.summary.stale}</b></div>
+          <div class='chip'>🔍 Reviewer: <b>${d.summary.byType?.REVIEWER||0}</b></div>
+          <div class='chip'>🛠️ Worker: <b>${d.summary.byType?.WORKER||0}</b></div>
+          <div class='chip'>스냅샷: <b>${d.generatedAtIso}</b></div>`;
 
-      renderHero(d.items || []);
-      renderSections(d);
+        renderQuotaResets(d.summary.quotaResets);
+        renderModelStats(d.summary.modelUsage);
+        renderLucaTeam(d.items || []);
+        renderSections(d);
+      } catch(e) {
+        console.error('load failed', e);
+      }
     }
 
     initTheme();
-    bindFilters();
     load();
     setInterval(load, 3000);
   </script>
