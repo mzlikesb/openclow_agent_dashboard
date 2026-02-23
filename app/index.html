@@ -197,6 +197,20 @@
       'Codex':        ['codex_primary', 'codex_secondary'],
     };
 
+    function formatResetAt(resetTsSec) {
+      if(!resetTsSec) return null;
+      const now = new Date();
+      const target = new Date(resetTsSec * 1000);
+      const nowDay  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tgtDay  = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+      const diffDays = Math.round((tgtDay - nowDay) / 86400000);
+
+      const timeStr = target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if(diffDays === 0) return `Resets today at ${timeStr}`;
+      if(diffDays === 1) return `Resets tomorrow at ${timeStr}`;
+      return `Resets ${target.toLocaleDateString([], { month:'short', day:'numeric' })} at ${timeStr}`;
+    }
+
     function renderModelStats(usage, quotaResets) {
       if(!usage) return;
       const COLORS = { 'Gemini Pro':'#4caf50', 'Gemini Flash':'#8bc34a', Claude:'#d97757', Codex:'#2196f3', Other:'#888' };
@@ -212,8 +226,11 @@
         const qKeys = FAMILY_QUOTA_KEY[family] || [];
         const resets = qKeys.map(k => quotaResets?.[k]).filter(Boolean);
         if(resets.length > 0) {
-          const parts = resets.map(r => `⏱ ${r.remaining}`).join(' · ');
-          resetHtml = `<div style="font-size:10px;opacity:.55;margin-top:4px;color:${color}">${parts} 후 리셋</div>`;
+          const parts = resets.map(r => {
+            const txt = formatResetAt(r.resetTs);
+            return txt ? `<span>${txt}</span>` : '';
+          }).filter(Boolean).join('<br>');
+          if(parts) resetHtml = `<div style="font-size:11px;opacity:.55;margin-top:5px;line-height:1.6">${parts}</div>`;
         }
 
         html += `
